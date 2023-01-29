@@ -55,6 +55,8 @@ class GridWorld {
       return false;
     }
 
+    // test hellooooo
+
     /*
      * function: whereis
      * description:  if given person is alive, his/her current residence
