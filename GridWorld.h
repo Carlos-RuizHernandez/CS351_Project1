@@ -56,6 +56,7 @@ class GridWorld {
     }
 
     // test hellooooo
+    // Another comment
 
     /*
      * function: whereis
