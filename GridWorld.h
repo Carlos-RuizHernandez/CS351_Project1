@@ -17,6 +17,40 @@ class GridWorld {
     //   private helper functions
     //   etc.
 
+    // structs that encapsulate the world
+
+    // person struct acts as "nodes"
+    struct {
+      int status; // whether person is dead or alive (0 if dead/1 if alive)
+      int ID; // person ID
+      struct person* next; // doubly linked list
+      struct person* prev; // doubly linked list allows for easy access to neighbors in district
+      int r;
+      int c;
+    } person;
+
+    // all elements in world grid consist of 1 district with multiple people
+    struct {
+      int pop;
+      struct person* head; //most senior
+      struct person* tail; //least senior
+    } district;
+
+    // encapsulates current state of the world
+    struct {
+      int pop; //number of people currently living (not dead)
+      vector<vector<district>> grid; // district grid
+      person* reuse; // dead people available for reuse, oldest is pointed to
+      vector<person> bucket; // contains all allocated people for easy access
+      int births; // total amount of allocated people (size of bucket)
+      int available_IDs; // # of IDs in reuse list (size of reuse)
+      int numrows; // easy access for num_rows() function
+      int numcols; // easy access for num_cols() function
+    } world
+
+    // TODO: Queue functions (dequeue, enqueue, size)
+    // Head will be most senior, tail will be most junior
+
   public:
     /**
     * constructor:  initializes a "world" with nrows and
