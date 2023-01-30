@@ -11,12 +11,6 @@ using std::vector;
 class GridWorld {
 
   private:
-    // private stuff goes here!
-    //   typedefs
-    //   data members
-    //   private helper functions
-    //   etc.
-
     // structs that encapsulate the world
 
     // person struct acts as "nodes"
@@ -39,14 +33,16 @@ class GridWorld {
     // encapsulates current state of the world
     struct world {
       int pop; //number of people currently living (not dead)
-      district[][] grid; // district grid
+      vector<vector<district*>> grid; // district grid
       person* reuse; // dead people available for reuse, oldest is pointed to
-      vector<person> bucket; // contains all allocated people for easy access
+      vector<person*> bucket; // contains all allocated people for easy access
       int births; // total amount of allocated people (size of bucket)
       int available_IDs; // # of IDs in reuse list (size of reuse)
       int numrows; // easy access for num_rows() function
       int numcols; // easy access for num_cols() function
     };
+
+    world* planetEarth;
 
     // TODO: Queue functions (dequeue, enqueue, size)
     // Head will be most senior, tail will be most junior
@@ -59,13 +55,41 @@ class GridWorld {
     */
     // Sami
     GridWorld(unsigned nrows, unsigned ncols)   {
-        world planetEarth = new world;
-        planetEarth.pop = 0;
-        planetEarth.grid =
+        planetEarth = new world;
+        planetEarth->pop = 0;
 
+        // Creates the district grid
+        for (int x = 0; x < nrows; x++) {
+          for (int y = 0; y < ncols; y++) {
+            district* newD = new district;
+            newD->pop = 0;
+            newD->head = NULL;
+            newD->tail = NULL;
+
+            planetEarth->grid[x][y] = newD;
+          }
+        }
+
+        // Intializing world instance variables
+        planetEarth->reuse = NULL;
+        planetEarth->births = 0;
+        planetEarth->available_IDs = 0;
+        planetEarth->numrows = nrows;
+        planetEarth->numcols = ncols;
     }
+
     ~GridWorld(){
-      // your destructor code here.
+      for (int x = 0; x < planetEarth->numrows; x++) {
+          for (int y = 0; y < planetEarth->numcols; y++) {
+            delete[] planetEarth->grid[x][y];
+          }
+      }
+
+      for (auto person : planetEarth->bucket) {
+        delete[] person;
+      }
+
+      delete[] planetEarth;
     }
 
     /*
@@ -130,7 +154,7 @@ class GridWorld {
      * description:  returns the current (living) population of the world.
      */
     int population()const{
-      return 0;
+      return planetEarth->pop;
     }
     
     /*
@@ -139,7 +163,7 @@ class GridWorld {
      *   district.  If district does not exist, zero is returned
      */
     int population(int row, int col)const{
-      return 0;
+      return planetEarth->grid[row][col]->pop;
     }
 
     /*
@@ -147,7 +171,7 @@ class GridWorld {
      * description:  returns number of rows in world
      */
     int num_rows()const {
-      return 0;
+      return planetEarth->numrows;
     }
 
     /*
@@ -155,7 +179,7 @@ class GridWorld {
      * description:  returns number of columns in world
      */
     int num_cols()const {
-      return 0;
+      return planetEarth->numcols;
     }
 
 
