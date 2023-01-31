@@ -34,7 +34,8 @@ class GridWorld {
     struct world {
       int pop; //number of people currently living (not dead)
       vector<vector<district*>> grid; // district grid
-      person* reuse; // dead people available for reuse, oldest is pointed to
+      person* reuseHead; // oldest dead person
+      person* reuseTail; // newest dead person
       vector<person*> bucket; // contains all allocated people for easy access
       int births; // total amount of allocated people (size of bucket)
       int available_IDs; // # of IDs in reuse list (size of reuse)
@@ -71,7 +72,8 @@ class GridWorld {
         }
 
         // Intializing world instance variables
-        planetEarth->reuse = NULL;
+        planetEarth->reuseHead = NULL;
+        planetEarth->reuseTail = NULL;
         planetEarth->births = 0;
         planetEarth->available_IDs = 0;
         planetEarth->numrows = nrows;
@@ -102,7 +104,50 @@ class GridWorld {
      */
      // Sami
     bool birth(int row, int col, int &id){
-      return false;
+      // new person and target district
+      person* newPerson;
+      district* targetDistrict;
+
+      // check for valid row and column
+      if (row < planetEarth->numrows && row >= 0 && col < planetEarth->numcols && col >= 0) {
+        // assign valid district for readability
+        targetDistrict = planetEarth->grid[row][col];
+        // resusable IDs are available
+        if (planetEarth->available_IDs > 0) {
+          // move oldest dead person over
+          newPerson = planetEarth->reuseHead;
+          planetEarth->reuseHead = planetEarth->reuseHead->next;
+          planetEarth->available_IDs--;
+        } else { // no resuable people
+          // create new person and add to bucket
+          newPerson = new person;
+          planetEarth->bucket.push_back(newPerson);
+          planetEarth->births++;
+        }
+
+        // empty district
+        if (targetDistrict->pop == 0) {
+            // add person to district list
+            targetDistrict->head = newPerson;
+            targetDistrict->tail = newPerson;
+            newPerson->prev = NULL;
+          } else {  // non-empty district
+            targetDistrict->tail->next = newPerson;
+            newPerson->prev = targetDistrict->tail;
+            targetDistrict->tail = newPerson;
+          }
+          // assign/update values for district/person/world
+          newPerson->next = NULL;
+          newPerson->status = 1;
+          newPerson->r = row;
+          newPerson->c = col;
+          targetDistrict->pop++;
+          planetEarth->pop++;
+          return true;
+      } else {
+        return false; //invalid row/col
+      }
+      
     }
 
     /*
