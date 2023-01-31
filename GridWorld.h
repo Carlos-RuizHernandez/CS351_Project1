@@ -48,10 +48,102 @@ class GridWorld {
     // TODO: Queue functions (dequeue, enqueue, size)
     // Head will be most senior, tail will be most junior
 
+    //
+    // addToDistrict()
+    // adds person to a given district, 
+    //
+    void addToDistrict(world*& planet, district*& d, person*& p, int row, int col) {
+      // empty district
+      if (d->pop == 0) {
+          // add person to district list
+          d->head = p;
+          d->tail = p;
+          p->prev = NULL;
+        } else {  // non-empty district
+          d->tail->next = p;
+          p->prev = d->tail;
+          d->tail = p;
+        }
+        // assign/update values for district/person/world
+        p->next = NULL;
+        p->status = 1;
+        p->r = row;
+        p->c = col;
+        // update populations accordingly
+        d->pop++;
+        planet->pop++;
+    }
+
+    //
+    // removeFromDistrict()
+    // removes person from a given district
+    //
+    void removeFromDistrict(world*& planet, district*& d, person*& p) {
+      // case person is head of the queue
+      if (p == d->head) {
+        d->head = d->head->next;
+        d->head->prev = NULL;
+      } else if (p == d->tail) {
+      // case person is at tail of the queue
+        d->tail = d->tail->prev;
+        d->tail->next = NULL;
+      } else {
+      // case person is in middle of queue
+        person* previous = &*p->prev;
+        person* next = &*p->next;
+        previous->next = next;
+        next->prev = previous;
+      }
+
+      // add person to reuse queue
+      if (planet->reuseHead == NULL) {
+        planet->reuseHead = p;
+        planet->reuseTail = p;
+        p->next = NULL;
+        p->prev = NULL;
+      } else {
+        planet->reuseTail->next = p;
+        p->prev = planet->reuseTail;
+        p->next = NULL;
+        planet->reuseTail = p;
+      }
+      planet->available_IDs++;
+      planet->pop--;
+      d->pop--;
+      // adjust person values to fit a dead person
+      p->status = 0;
+      p->r = -1;
+      p->c = -1;
+    }
+
+    //
+    // birthOrAdopt()
+    // checks if a person ID can be reassigned or if a new person must be created
+    //
+    person* birthOrAdopt(world*& planet, int row, int col) {
+      person* newPerson;
+
+      // resusable IDs are available
+      if (planet->available_IDs > 0) {
+        // move oldest dead person over
+        newPerson = planet->reuseHead;
+        planet->reuseHead = planet->reuseHead->next;
+        planet->available_IDs--;
+      } else { // no resuable people
+        // create new person and add to bucket
+        newPerson = new person;
+        planet->bucket.push_back(newPerson);
+        newPerson->ID = planet->births;
+        planet->births++;
+      }
+
+      return newPerson;
+    }
+
   public:
     /**
     * constructor:  initializes a "world" with nrows and
-    *    ncols (nrows*ncols districtcs) in which all 
+    *    ncols (nrows*ncols districts) in which all 
     *    districtricts are empty (a wasteland!).
     */
     // Sami
@@ -110,40 +202,17 @@ class GridWorld {
 
       // check for valid row and column
       if (row < planetEarth->numrows && row >= 0 && col < planetEarth->numcols && col >= 0) {
+
         // assign valid district for readability
         targetDistrict = planetEarth->grid[row][col];
-        // resusable IDs are available
-        if (planetEarth->available_IDs > 0) {
-          // move oldest dead person over
-          newPerson = planetEarth->reuseHead;
-          planetEarth->reuseHead = planetEarth->reuseHead->next;
-          planetEarth->available_IDs--;
-        } else { // no resuable people
-          // create new person and add to bucket
-          newPerson = new person;
-          planetEarth->bucket.push_back(newPerson);
-          planetEarth->births++;
-        }
 
-        // empty district
-        if (targetDistrict->pop == 0) {
-            // add person to district list
-            targetDistrict->head = newPerson;
-            targetDistrict->tail = newPerson;
-            newPerson->prev = NULL;
-          } else {  // non-empty district
-            targetDistrict->tail->next = newPerson;
-            newPerson->prev = targetDistrict->tail;
-            targetDistrict->tail = newPerson;
-          }
-          // assign/update values for district/person/world
-          newPerson->next = NULL;
-          newPerson->status = 1;
-          newPerson->r = row;
-          newPerson->c = col;
-          targetDistrict->pop++;
-          planetEarth->pop++;
-          return true;
+        // check if new person needs to be birthed or reassigned
+        newPerson = birthOrAdopt(planetEarth, row, col);
+
+        // add to target district
+        addToDistrict(planetEarth, targetDistrict, newPerson, row, col);
+        return true;
+
       } else {
         return false; //invalid row/col
       }
@@ -158,6 +227,18 @@ class GridWorld {
      * return:  indicates success/failure
      */
     bool death(int personID){
+      //check if person exists
+      if (personID < planetEarth->births) {
+
+        person* markedForDeath = planetEarth->bucket[personID];
+
+        // check if person is alive
+        if (markedForDeath->status == 1) {
+          district* targetDistrict = planetEarth->grid[markedForDeath->r][markedForDeath->c];
+          removeFromDistrict(planetEarth, targetDistrict, markedForDeath);
+          return true;
+        }
+      }
 
       return false;
     }
@@ -171,6 +252,13 @@ class GridWorld {
      * return:  indicates success/failure
      */
     bool whereis(int id, int &row, int &col)const{
+      if (id < planetEarth->births) {
+        if(planetEarth->bucket[id]->status == 1){
+          row = planetEarth->bucket[id]->r;
+          col = planetEarth->bucket[id]->c;
+          return true;
+        }
+      }
       return false;
     }
 
@@ -186,6 +274,21 @@ class GridWorld {
      *   of target district (least seniority) --  see requirements of members().
      */
     bool move(int id, int targetRow, int targetCol){
+      //check if person exists
+      if (id < planetEarth->births) {
+
+        person* moving = planetEarth->bucket[id];
+
+        // check if person is alive
+        if (moving->status == 1) {
+          district* currentDistrict = planetEarth->grid[moving->r][moving->c];
+          district* targetDistrict = planetEarth->grid[targetRow][targetCol];
+          removeFromDistrict(planetEarth, currentDistrict, moving);
+          addToDistrict(planetEarth, targetDistrict, moving, targetRow, targetCol);
+          return true;
+        }
+      }
+
       return false;
     }
 
