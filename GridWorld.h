@@ -159,7 +159,7 @@ public:
 
     // Creates the district grid
     for (unsigned int x = 0; x < nrows; x++) {
-      vector<district*> dvect;
+      vector<district *> dvect;
       planetEarth->grid.push_back(dvect);
       for (unsigned int y = 0; y < ncols; y++) {
         district *newD = new district;
@@ -283,7 +283,8 @@ public:
    */
   bool move(int id, int targetRow, int targetCol) {
     // check if person exists
-    if (id < planetEarth->births) {
+    if (id < planetEarth->births && targetRow < planetEarth->numrows &&
+        targetRow >= 0 && targetCol < planetEarth->numcols && targetCol >= 0) {
 
       person *moving = planetEarth->bucket[id];
 
@@ -302,9 +303,20 @@ public:
   }
 
   std::vector<int> *members(int row, int col) const {
-    row++;
-    col--;
-    return nullptr;
+    vector<int>* list = new vector<int>;
+    
+    if (row < planetEarth->numrows && row >= 0 && col < planetEarth->numcols &&
+        col >= 0) {
+      district *targetDistrict = planetEarth->grid[row][col];
+      
+      person *currPerson = targetDistrict->head;
+      while (currPerson != NULL) {
+        int id = currPerson->ID;
+        (*list).push_back(id);
+        currPerson = currPerson->next;
+      }
+    }
+    return list;
   }
 
   /*
