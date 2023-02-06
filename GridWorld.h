@@ -183,15 +183,15 @@ public:
   ~GridWorld() {
     for (int x = 0; x < planetEarth->numrows; x++) {
       for (int y = 0; y < planetEarth->numcols; y++) {
-        delete[] planetEarth->grid[x][y];
+        delete planetEarth->grid[x][y];
       }
     }
 
     for (auto person : planetEarth->bucket) {
-      delete[] person;
+      delete person;
     }
 
-    delete[] planetEarth;
+    delete planetEarth;
   }
 
   /*
